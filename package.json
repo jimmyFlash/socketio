@@ -1,0 +1,28 @@
+{
+  "name": "jimmyflash-github",
+  "version": "1.0.0",
+  "description": "realtime chat using socket io",
+  "main": "chatter.js",
+  "scripts": {
+    "test": "node chatter.js"
+  },
+  "keywords": [
+    "socket.io",
+    "chat",
+    "realtime",
+    "nodejs"
+  ],
+  "author": "jamal safwat",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jimmyFlash/socketio.git"
+  },
+  "dependencies": {
+    "connect-redis": "^3.0.2",
+    "express": "^4.13.4",
+    "express-session": "^1.13.0",
+    "redis": "^2.6.0-1",
+    "socket.io": "^1.4.5"
+  }
+}
