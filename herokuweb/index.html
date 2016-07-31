@@ -1,0 +1,473 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>chat test page using socket.io</title>
+<style>
+     * {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+		background:#C4DEFF;
+	 }
+      body { font: 13px Helvetica, Arial; }
+	  
+	  #chat_area{
+		  width:74%;
+		  height:100%;
+		  float:right;
+		  position:relative;
+		border:2px solid #09F;
+		background-color: #09F;
+		border-bottom-left-radius:0.5em;
+		border-bottom-right-radius:0.5em;
+	  }
+	  
+	  #users{
+		  width:24%;
+		  height:100%;
+		  float:left;
+		  border:2px solid #09F;
+		  background-color: #6CF;
+	  }
+	  
+	  #container{
+		position: absolute;
+		top: 0; 
+		right: 0;
+		bottom: 0; 
+		left: 0;
+		border: 2px groove #00F;
+		padding:1%;
+	  }
+	  
+      form { 
+		background: none; 
+		padding: 0.6%; 
+		position: absolute; 
+		bottom: 0; 	
+		text-align:center;
+		width:100%;
+		
+	  }
+	  
+      form input { 
+		border: 0;
+		padding: 0.8%;
+		width: 76%; 
+		margin-right: .2%;
+		font-size:16px;
+	   }
+	   
+      form button {
+		width: 19.5%; 
+		background: #0FF; 
+		border: 0.2em solid #fff; 
+		padding: 0.8%; 
+		font-size:1em; 
+		color:#FFF;
+		border-radius:0.5em;
+		
+	   }
+	   
+      #messages  { 
+		list-style-type: none; 
+		margin: 1%; 
+		padding: 0;
+		height:90%;
+		border: 1px solid #fff ;
+		overflow:auto;
+		background-color:#6CF;
+		background:  url(log.png) no-repeat center;
+	  }
+
+	  #chatters{
+		list-style-type: none;   
+		margin: 0.5%; 
+		padding: 0;
+		
+	  }
+	  
+      #messages li,  #chatters li { 
+	  
+	 	 padding: 5px 10px;
+		 
+		 width:auto;
+		
+	  }
+	 
+	  
+
+	  
+	  
+	  .useralert{
+		  color:#F00;
+		  background-color: #fff;
+		  font-size:0.2em;
+		  display:block;
+		  clear:both;
+		 
+	  }
+	  
+	  .disconnectalert{
+		  color:#C00;
+		  font-size:0.2em;
+		  display:block;
+		  clear:both;
+
+	  }
+	  
+	   .useractive{
+		  color:#fff;
+		  background-color: #3CF;
+		  font-size:1.5em;
+		  border-bottom:1px solid #fff;
+		  text-align:center;
+	  }
+	  
+	  
+	  
+	  #msg{
+		 border:2px solid #39F;
+		 border-radius:0.5em;
+		 font-size:1.5em;
+	  }
+	  
+	  .chatMsg{
+		 font-size:1.5em;
+		 float:left;
+		 margin-right:20%;
+		 margin-left:2%;
+		 margin-top:5px;
+		 margin-bottom:5px;
+		 clear:both;
+		 background-color:#06F;
+		 border-radius:15px;
+		 color:#FFF;
+	     border:#fff solid 2px;
+	  }
+	  
+	  
+	  .chatMsgOtheruser{
+		 font-size:1.5em;
+		 float:right;
+		 margin-left:20%;
+		 margin-right:2%;
+		 margin-top:5px;
+		 margin-bottom:5px;
+		 clear:both;
+		 background-color:#69F;
+		 border-radius:15px;
+		 color:#FFF;
+		 border:#fff solid 2px;
+	  }
+	  
+	  
+	   .historyMsg{
+		 font-size:0.9em;
+		 float:right;
+		 margin-left:20%;
+		 margin-right:2%;
+		 margin-top:5px;
+		 margin-bottom:5px;
+		 clear:both;
+		 background-color:#ccc;
+		 border-radius:15px;
+		 color:#FFF;
+	  }
+	  
+	   .historyEvent{
+		 color:#fff;
+		 background-color: transparent;
+		 font-size:1em;
+	  }
+	  
+	  @media all and (max-width: 800px) { 
+	  
+	  	   .useractive{
+			  color:#fff;
+			  background-color: #3CF;
+			  font-size:0.9em;
+			  border-bottom:1px solid #fff;
+			  text-align:left;
+		  }
+		 		
+	  }
+	  
+	   @media all and (max-height: 550px) { 
+	   
+	    #messages  { 
+			list-style-type: none; 
+			margin: 1%; 
+			padding: 0;
+			height:85%;
+			border: 1px solid #fff ;
+			overflow:auto;
+			background-color:#6CF;
+		  }
+	  
+	  	   form input { 
+			border: 0;
+			padding: 0.3%;
+			width: 76%; 
+			margin-right: .2%;
+			font-size:12px;
+		   }
+		   
+		  form button {
+			width: 19.5%; 
+			background: #0FF; 
+			border: 0.2em solid #fff; 
+			padding: 0.3%; 
+			font-size:0.8em; 
+			color:#FFF;
+			border-radius:0.2em;
+			
+		   }
+	  	  
+		 		
+	  }
+    </style>
+    
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<script>
+	var currentUserName = "";
+	var useNamesArr = new Array();
+	var socket;
+	var historycount = 0;
+	var audio = document.createElement('audio');
+	var gotErrCnt = 0;
+	audio.volume = 0.5;
+	audio.src = "audio/facebookme_not.mp3";
+	$( document ).ready(function() {
+	
+		
+		document.title = "public chat app. by jamal safwat of polaris dynamics";
+		
+		  socket = io(); //TIP: io() with no args does auto-discovery
+	 
+	   $("form").submit(function(){
+		
+			socket.emit("message", $("#msg").val());
+			$("#msg").val("");
+			return false;
+		});
+		
+		socket.on('message', function(msg){
+			
+			var userExtract = msg.split(":");
+			
+			console.log("the extracted user name is :" + userExtract[0]);
+			
+			if(userExtract[0] === currentUserName){
+				$('#messages').append($('<li>').addClass("chatMsg").text(msg));
+			}else{
+				$('#messages').append($('<li>').addClass("chatMsgOtheruser").text(msg));
+				playSound();
+			}
+			
+			
+		});
+		
+		
+		socket.on('history', function (historySet){
+			  historySet.forEach(function (msg){
+				  if(msg.name === "eve"){
+						
+						$('#messages').append($('<li>')
+						.css("background", "none")
+						.addClass("historyEvent").text(msg.data));
+						
+					}else if(msg.name === "msg"){
+						
+						$('#messages').append($('<li>')
+						.addClass("historyMsg").text(msg.data));
+						
+					}
+			  });
+			  socket.removeAllListeners("history");
+
+		});
+		
+		  
+		socket.on('user', function(data){
+			$('#messages').append($('<li>')
+			.css("background", "none")
+			.css("font-size", "small")
+			.addClass("useralert").text(data.user + data.name));
+			
+			if(currentUserName == ""){
+				currentUserName = data.name;
+				
+			}else{
+				playSound();
+			}
+			
+			
+			$('#chatters').empty();
+			 for (var key in data.usersObj){
+				
+				if (data.usersObj.hasOwnProperty(key)) {
+					 
+					 var usernameJoined = data.usersObj[key]["user"];
+					 console.log(" users now online -> " + usernameJoined);
+					 
+					 $('#chatters').append($('<li>')
+					 	.removeAttr('style')
+						.addClass("useractive").text(usernameJoined));
+					 
+					 for (var key2 in data.usersObj[key]){
+						 if (data.usersObj[key].hasOwnProperty(key2)) {
+
+							 console.log(key2 + " -> " + data.usersObj[key][key2]);
+							 
+						 }
+					 }
+					
+				 }
+			 }
+		});
+		
+		socket.on('out', function(data){
+			$('#messages').append($('<li>')
+			.css("background", "none")
+			.css("font-size", "small")
+			.addClass("disconnectalert").text(data.user + " has left") );
+		});
+		
+		socket.on('leave', function(data){
+			
+			$('#chatters').empty();
+			useNamesArr = new Array();
+			 for (var key in data.usersObj){
+				
+				if (data.usersObj.hasOwnProperty(key)) {
+					console.log(key + " -> " + data.usersObj[key]);
+					 var usernameJoined = data.usersObj[key]["user"];
+					 
+					 useNamesArr.push(usernameJoined);
+					 
+					 $('#chatters').append($('<li>')
+					 	.removeAttr('style')
+						.addClass("useractive").text(usernameJoined));
+					 
+					 for (var key2 in data.usersObj[key]){
+						 if (data.usersObj[key].hasOwnProperty(key2)) {
+
+							 console.log(key2 + " -> " + data.usersObj[key][key2]);
+						 }
+					 }
+					
+				 }
+			 }
+			
+		});
+		
+		socket.on('connect', function() {
+			
+			//checkConfrimNick("Choose a nickname for  yourself please. ");
+		
+		});
+		
+			
+		socket.on('listOnline', function(data) {
+			
+			useNamesArr = new Array();
+			 for (var key in data.usersObj){
+				
+				if (data.usersObj.hasOwnProperty(key)) {
+					console.log(key + " -> " + data.usersObj[key]);
+					 var usernameJoined = data.usersObj[key]["user"];
+					 
+					 useNamesArr.push(usernameJoined);
+					
+				 }
+			 }
+			
+			
+			checkConfrimNick("Choose a nickname for  yourself please. no spaces! ");
+			
+			// unsubscribe from event 
+			 socket.off('listOnline');
+	
+		});
+				
+		
+	});
+	
+	
+	function checkConfrimNick(message){
+		
+		var error = false;
+		nickname = prompt(message);
+		nickname = nickname.replace(/\s+/g, '');
+		console.log(" the slected nickname : " + nickname);
+		if(!nickname || nickname === undefined || nickname === null){
+			checkConfrimNick("Nickname can't be empty, select a unique nickname please");
+		}else{
+			
+			try {
+				useNamesArr.forEach(function(value){
+					console.log(" stored users online values " + value);
+					if(nickname === value){
+						
+						throw new DuplicateValueException(nickname);
+					}
+				});
+			}catch (e){
+				
+				error = true;
+				
+				checkConfrimNick("duplicate nickname " + e.value + " Choose another nick please!");
+				
+			}
+			
+			if(!error){
+				socket.emit('join', nickname);
+				error = true;
+			}
+		}	
+	}
+	
+	
+	function playSound() {
+	
+		audio.play();
+		 
+	}
+	
+	function DuplicateValueException(name ){
+		
+		 this.value = name;
+   		 this.message = "DuplicateValueException";
+   
+	}
+	
+	
+    
+    </script>
+   
+	
+</head>
+
+<body>
+	<div id="container" >
+    
+        <div id="users">
+            <ul id="chatters">
+            </ul>
+        </div>
+        <div id="chat_area">
+   
+            <ul id="messages">
+            </ul>
+            <form action="">
+              <input id="msg" autocomplete="off" />
+              <button>Send</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
